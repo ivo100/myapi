@@ -1,0 +1,1320 @@
+swagger: '2.0'
+x-stoplight:
+  id: e9bjmopffjy6y
+info:
+  title: Merchant API
+  description: Verituity API for creating users (payees) and payments (claims).
+  version: 1.10.0
+  contact:
+    name: Verituity
+    email: info@verituity.com
+schemes:
+  - http
+  - https
+basePath: /merchant-api
+consumes:
+  - application/json
+produces:
+  - application/json
+paths:
+  /v1/payments:
+    get:
+      summary: Search Payments
+      description: |
+        Returns paginated list of payments matching set of zero, one or more filtering criteria. 
+        The records are returned sorted by creation date, 
+        with the most recent payments appearing first. 
+        If no criteria are specified all records will be returned.
+      operationId: PaymentService_ListPayments
+      responses:
+        '200':
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/merchantListPaymentsResponse'
+        '400':
+          description: Returned when request is not valid.
+          schema:
+            $ref: '#/definitions/error'
+        '401':
+          description: Returned when request is not authenticated.
+          schema:
+            $ref: '#/definitions/error'
+        '500':
+          description: Returned on internal server errors.
+          schema:
+            $ref: '#/definitions/error'
+      parameters:
+        - name: clientPaymentId
+          description: Filter based on client-defined payment identifier
+          in: query
+          required: false
+          type: string
+        - name: programId
+          description: Filter based on program id.
+          in: query
+          required: false
+          type: string
+          format: uuid
+        - name: createdBefore
+          description: Filter based on creation date and time. Only payments created before this datetime will be returned.
+          in: query
+          required: false
+          type: string
+          format: 'YYYY-MM-DDThh:mm:ss'
+        - name: createdAfter
+          description: Filter based on creation date and time. Only payments created after this datetime will be returned.
+          in: query
+          required: false
+          type: string
+          format: 'YYYY-MM-DDThh:mm:ss'
+        - name: currencyCode
+          description: Filter based on currency code.
+          in: query
+          required: false
+          type: string
+        - name: status
+          description: |-
+            Filter based on user status.
+
+             - CREATED: The payment has been created.
+             - IN_PROGRESS: The payment is being processed.
+             - FAILED: The payment has failed.
+             - COMPLETED: The payment has been completed.
+             - EXPIRED: The payment has expired.
+             - CANCELED: The payment has been canceled.
+             - ON_HOLD: The payment is on hold.
+          in: query
+          required: false
+          type: string
+          enum:
+            - UNSPECIFIED
+            - CREATED
+            - IN_PROGRESS
+            - FAILED
+            - COMPLETED
+            - EXPIRED
+            - CANCELED
+            - ON_HOLD
+          default: CREATED
+        - name: minAmount
+          description: Filter on payment amount. Payments with provided amount or grater will be returned.
+          in: query
+          required: false
+          type: number
+        - name: maxAmount
+          description: Filter on payment amount. Payments with provided amount or less will be returned.
+          in: query
+          required: false
+          type: number
+        - name: offset
+          description: The number of records to skip. Default value is 0.
+          in: query
+          required: false
+          type: integer
+          format: int64
+          default: 0
+        - name: limit
+          description: The maximum number of records that will be returned. Default value is 10. Range is from 1 to 100.
+          in: query
+          required: false
+          type: integer
+          format: int64
+          default: 10
+      tags:
+        - Payments
+      security:
+        - OAuthAccessToken: []
+    post:
+      summary: Creates a Payment
+      description: |
+        Creates new payment for existing payee.
+        Payment is identified by unique clientPaymentId, payee is identified by recipientUserId.
+      operationId: PaymentService_CreatePayment
+      responses:
+        '200':
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/merchantCreatePaymentResponse'
+        '400':
+          description: Returned when request is not valid.
+          schema:
+            $ref: '#/definitions/error'
+        '401':
+          description: Returned when request is not authenticated.
+          schema:
+            $ref: '#/definitions/error'
+        '500':
+          description: Returned on internal server errors.
+          schema:
+            $ref: '#/definitions/error'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/merchantCreatePaymentRequest'
+      tags:
+        - Payments
+      security:
+        - OAuthAccessToken: []
+  '/v1/payments/{id}':
+    get:
+      summary: Retrieves a payment
+      description: |
+        Retrieves previously submitted payment.
+      operationId: PaymentService_GetPayment
+      responses:
+        '200':
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/merchantGetPaymentResponse'
+        '401':
+          description: Returned when request is not authenticated.
+          schema:
+            $ref: '#/definitions/error'
+        '404':
+          description: Returned when resource does not exist.
+          schema:
+            $ref: '#/definitions/error'
+        '500':
+          description: Returned on internal server errors.
+          schema:
+            $ref: '#/definitions/error'
+      parameters:
+        - name: id
+          description: Unique identifier of the payment.
+          in: path
+          required: true
+          type: string
+      tags:
+        - Payments
+      security:
+        - OAuthAccessToken: []
+  '/v1/payments/{id}/cancel':
+    put:
+      summary: Cancels a payment
+      description: |-
+        A payment can be cancelled if it is in early stage of the workflow.
+        If the status is CREATED - cancel request will be accepted and interrupt the flow.
+        Any other states will result in http return code of 400 - invalid request.
+      operationId: PaymentService_CancelPayment
+      responses:
+        '200':
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/merchantCancelPaymentResponse'
+        '400':
+          description: Returned when request is not valid.
+          schema:
+            $ref: '#/definitions/error'
+        '401':
+          description: Returned when request is not authenticated.
+          schema:
+            $ref: '#/definitions/error'
+        '404':
+          description: Returned when resource does not exist.
+          schema:
+            $ref: '#/definitions/error'
+        '500':
+          description: Returned on internal server errors.
+          schema:
+            $ref: '#/definitions/error'
+      parameters:
+        - name: id
+          description: Unique identifier of the payment.
+          in: path
+          required: true
+          type: string
+      tags:
+        - Payments
+      security:
+        - OAuthAccessToken: []
+  '/v1/payments/{id}/hold':
+    delete:
+      summary: Releases a held payment
+      description: Releases payment from hold  while it is in *ON_HOLD* status. Payment status changes back to CREATED.
+      operationId: PaymentService_ReleasePaymentHold
+      responses:
+        '200':
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/merchantDeletePaymentOnHoldResponse'
+        '400':
+          description: Returned when request is not valid.
+          schema:
+            $ref: '#/definitions/error'
+        '401':
+          description: Returned when request is not authenticated.
+          schema:
+            $ref: '#/definitions/error'
+        '404':
+          description: Returned when resource does not exist.
+          schema:
+            $ref: '#/definitions/error'
+        '500':
+          description: Returned on internal server errors.
+          schema:
+            $ref: '#/definitions/error'
+      parameters:
+        - name: id
+          description: Unique identifier of the payment.
+          in: path
+          required: true
+          type: string
+      tags:
+        - Payments
+      security:
+        - OAuthAccessToken: []
+    put:
+      summary: Puts a payment on hold
+      description: Puts a payment on hold while it is still in *CREATED* status.
+      operationId: PaymentService_PutPaymentOnHold
+      responses:
+        '200':
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/merchantPutPaymentOnHoldResponse'
+        '400':
+          description: Returned when request is not valid.
+          schema:
+            $ref: '#/definitions/error'
+        '401':
+          description: Returned when request is not authenticated.
+          schema:
+            $ref: '#/definitions/error'
+        '404':
+          description: Returned when resource does not exist.
+          schema:
+            $ref: '#/definitions/error'
+        '500':
+          description: Returned on internal server errors.
+          schema:
+            $ref: '#/definitions/error'
+      parameters:
+        - name: id
+          description: Unique identifier of the payment.
+          in: path
+          required: true
+          type: string
+      tags:
+        - Payments
+      security:
+        - OAuthAccessToken: []
+  /v1/users:
+    get:
+      summary: Search users
+      description: |-
+        Returns paginated list of payees matching set of zero, one or more filtering criteria. 
+        The users are returned sorted by creation date, with the most recent users appearing first. 
+        If no criteria is specified all records will be returned.
+      operationId: UserService_ListUsers
+      responses:
+        '200':
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/merchantListUsersResponse'
+        '400':
+          description: Returned when request is not valid.
+          schema:
+            $ref: '#/definitions/error'
+        '401':
+          description: Returned when request is not authenticated.
+          schema:
+            $ref: '#/definitions/error'
+        '500':
+          description: Returned on internal server errors.
+          schema:
+            $ref: '#/definitions/error'
+      parameters:
+        - name: programId
+          description: Filter based on program id.
+          in: query
+          required: false
+          type: string
+          format: uuid
+        - name: clientUserId
+          description: Filter by ClientUserId
+          in: query
+          required: false
+          type: string
+        - name: createdBefore
+          description: Filter by date. Only users created before this datetime will be returned.
+          in: query
+          required: false
+          type: string
+          format: 'YYYY-MM-DDThh:mm:ss'
+        - name: createdAfter
+          description: Filter by date. Only users created after this datetime will be returned.
+          in: query
+          required: false
+          type: string
+          format: 'YYYY-MM-DDThh:mm:ss'
+        - name: email
+          description: Filter by email.
+          in: query
+          required: false
+          type: string
+        - name: status
+          description: |-
+            Filter by user status.
+
+             - DRAFT: Undetermined/draft
+             - CREATED: The user has been created.
+             - VERIFIED: User entered OTP and confirmed their email
+             - ACTIVATED: User is able to accept payments
+             - GUARDIAN_CONSENT_PENDING: Minor awaiting for parent to consent
+             - ID_PROOFING_FAILED: User went to ID Proofing, but hasn't passed the check
+             - ID_PROOFING_PENDING: User agreed to try the secondary ID Proofing check
+             - GUARDIAN_CONSENT_REJECTED: Guardian rejected to give consent for minor
+             - NAME_MATCH_FAILED: User name matching failed
+             - RELATIONSHIP_VERIFICATION_FAILED: Relationship verification failed
+             - RELATIONSHIP_VERIFICATION_FAILED_FINAL: Relationship verification failed
+             - SUSPENDED: Merchant (admin) decided to suspend profile
+             - ON_HOLD: Merchant (admin) decided to place profile on hold
+             - LOCKED: User locked for various reasons except expiration, and thus cannot access the system at all
+             - DEACTIVATED: User wasn't active for 2 years, so cannot access the system, and is subject for removal
+          in: query
+          required: false
+          type: string
+          enum:
+            - DRAFT
+            - CREATED
+            - VERIFIED
+            - ACTIVATED
+            - ID_PROOFING_FAILED
+            - ID_PROOFING_PENDING
+            - NAME_MATCH_FAILED
+            - RELATIONSHIP_VERIFICATION_FAILED
+            - RELATIONSHIP_VERIFICATION_FAILED_FINAL
+            - SUSPENDED
+            - ON_HOLD
+            - LOCKED
+            - DEACTIVATED
+        - name: firstName
+          description: Filter based on user's first name.
+          in: query
+          required: false
+          type: string
+        - name: lastName
+          description: Filter based on user's last name.
+          in: query
+          required: false
+          type: string
+        - name: addressLine1
+          description: Filter based on User's address line 1.
+          in: query
+          required: false
+          type: string
+        - name: addressLine2
+          description: Filter based on User's address line 2.
+          in: query
+          required: false
+          type: string
+        - name: city
+          description: Filter based on user's city.
+          in: query
+          required: false
+          type: string
+        - name: stateProvince
+          description: Filter based on user's state or province.
+          in: query
+          required: false
+          type: string
+        - name: countryCode
+          description: |-
+            Filter based on user's country code.
+
+            The value follows ISO-3166 standard. Alpha-2 code is used.
+          in: query
+          required: false
+          type: string
+        - name: postalCode
+          description: Filter based on the user's postal code.
+          in: query
+          required: false
+          type: string
+        - name: profileType
+          description: Filter based on the user's profile type
+          in: query
+          required: false
+          type: string
+        - name: offset
+          description: The number of records to skip. Default value is 0.
+          in: query
+          required: false
+          type: integer
+          format: int64
+          default: 0
+        - name: limit
+          description: The maximum number of records that will be returned. Default value is 10. Range is from 1 to 100.
+          in: query
+          required: false
+          type: integer
+          format: int64
+          default: 10
+      tags:
+        - Users
+      security:
+        - OAuthAccessToken: []
+    post:
+      summary: Creates a new user
+      description: Creates new user(payee) - clientUserId must be unique within the scope of the programId.
+      operationId: UserService_CreateUser
+      responses:
+        '200':
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/merchantCreateUserResponse'
+        '400':
+          description: Returned when request is not valid.
+          schema:
+            $ref: '#/definitions/error'
+        '401':
+          description: Returned when request is not authenticated.
+          schema:
+            $ref: '#/definitions/error'
+        '500':
+          description: Returned on internal server errors.
+          schema:
+            $ref: '#/definitions/error'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/merchantCreateUserRequest'
+      tags:
+        - Users
+      security:
+        - OAuthAccessToken: []
+  '/v1/users/{id}':
+    get:
+      summary: Retrieves a User
+      description: Retrieves existing payee by user id.
+      operationId: UserService_GetUser
+      responses:
+        '200':
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/merchantGetUserResponse'
+        '401':
+          description: Returned when request is not authenticated.
+          schema:
+            $ref: '#/definitions/error'
+        '404':
+          description: Returned when resource does not exist.
+          schema:
+            $ref: '#/definitions/error'
+        '500':
+          description: Returned on internal server errors.
+          schema:
+            $ref: '#/definitions/error'
+      parameters:
+        - type: string
+          name: id
+          in: path
+          description: unique id of the created user - returned by CreateUser method
+          format: uuid
+          required: true
+      tags:
+        - Users
+    delete:
+      summary: Deletes a user
+      description: |-
+        Delete request for existing active user performs soft deletion of user's profile.
+
+        Corresponding profile is marked as not active in the system.
+        Profile will not appear in results from search and the user access to the payee portal will be denied.
+      operationId: UserService_DeleteUser
+      responses:
+        '200':
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/merchantDeleteUserResponse'
+        '401':
+          description: Returned when request is not authenticated.
+          schema:
+            $ref: '#/definitions/error'
+        '500':
+          description: Returned on internal server errors.
+          schema:
+            $ref: '#/definitions/error'
+      parameters:
+        - type: string
+          name: id
+          in: path
+          description: unique id of the created user - returned by CreateUser method
+          format: uuid
+          required: true
+      tags:
+        - Users
+  /v1/version:
+    get:
+      summary: Retrieves service version
+      description: Returns version of the service.
+      operationId: VersionService_GetVersion
+      responses:
+        '200':
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/merchantGetVersionResponse'
+        '500':
+          description: Returned on internal server errors.
+          schema:
+            $ref: '#/definitions/error'
+      tags:
+        - Version
+  /v1/webhook-events:
+    get:
+      summary: Search Webhook Events
+      description: Returns paginated list of webhook events matching given time range.
+      operationId: WebhookService_ListWebhookEvents
+      responses:
+        '200':
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/merchantListWebhookEventsResponse'
+        '400':
+          description: Returned when request is not valid.
+          schema:
+            $ref: '#/definitions/error'
+        '401':
+          description: Returned when request is not authenticated.
+          schema:
+            $ref: '#/definitions/error'
+        '500':
+          description: Returned on internal server errors.
+          schema:
+            $ref: '#/definitions/error'
+      parameters:
+        - name: createdAfter
+          description: Filter based on creation date and time. Only events created after provided datetime will be returned.
+          in: query
+          required: false
+          type: string
+          format: 'YYYY-MM-DDThh:mm:ss'
+        - name: createdBefore
+          description: Filter based on creation date and time. Only events created before provided datetime will be returned.
+          in: query
+          required: false
+          type: string
+          format: 'YYYY-MM-DDThh:mm:ss'
+        - name: offset
+          description: The number of records to skip. Default value is 0.
+          in: query
+          required: false
+          type: integer
+          format: int64
+          default: 0
+        - name: limit
+          description: The maximum number of records that will be returned. Default value is 10. Range is from 1 to 100.
+          in: query
+          required: false
+          type: integer
+          format: int64
+          default: 10
+      tags:
+        - Webhook Events
+      security:
+        - OAuthAccessToken: []
+definitions:
+  PersonAttributeMatchType:
+    type: string
+    enum:
+      - 'YES'
+      - FUZZY
+      - 'NO'
+    default: 'YES'
+    x-stoplight:
+      id: mssjwp0cuktpg
+  merchantCancelPaymentResponse:
+    type: object
+    title: CancelPaymentResponse
+    properties:
+      paymentId:
+        type: string
+        format: uuid
+        example: 5a8a6714-f4fc-11ed-853d-f74e0fb94cc9
+        description: Unique identifier of the payment.
+      status:
+        type: string
+        example: CANCELED
+    x-stoplight:
+      id: dc6udbb268u3s
+  merchantCreatePaymentRequest:
+    type: object
+    properties:
+      recipientUserId:
+        type: string
+        format: uuid
+        example: c2ea5e04-f4ca-11ed-9fb0-2f04489c3245
+        description: 'Unique identifier of the payee (recipient user). This is the same value of id, returned in CreateUserResponse on successful creation of payee.'
+      clientPaymentId:
+        type: string
+        example: ref-1234-567
+        description: 'A client-defined identifier of the payment. Can be arbitrary, but unique string that identifies the payment and can be used for tracking and audit purposes.'
+        maxLength: 80
+      amount:
+        type: number
+        example: 1234.56
+        description: The amount of the payment. Must contain the appropriate number of decimal points as per the currencyCode.
+      currencyCode:
+        type: string
+        example: USD
+        description: The 3-letter currency code as defined in ISO 4217.
+        minLength: 3
+        maxLength: 3
+      programId:
+        type: string
+        format: uuid
+        example: 1f90dbce-f4c6-11ed-88f5-63c0378ad18b
+        description: 'The unique identifier of the business entity, which is debtor/originator of the payment. Created during onboarding, and provided by Verituity.'
+      description:
+        type: string
+        example: This is payment for your claim 1234-567 of 01/02/2020.
+        description: 'Required description of the payment, provided by the payer. It will be displayed in the invitation email, and on the Payee Portal.'
+        maxLength: 200
+      remittanceURL:
+        type: string
+        description: 'Optional remittance URL provided by the payer. It must be a well-formed URL, containing metadata attached for informational purposes. It will be displayed in the invitation email and on the Payee Portal.'
+        title: Optional remittance URL attached to the payment
+        example: 'http://example.com/your-payment-instructions-are-here'
+    title: CreatePaymentRequest
+    required:
+      - recipientUserId
+      - amount
+      - clientPaymentId
+      - currencyCode
+      - programId
+      - description
+    x-stoplight:
+      id: g4d4a5fsx7anu
+  merchantCreatePaymentResponse:
+    type: object
+    properties:
+      data:
+        $ref: '#/definitions/merchantPayment'
+    title: CreatePaymentResponse
+    x-stoplight:
+      id: db0z1vwd561by
+  merchantCreateUserRequest:
+    type: object
+    properties:
+      clientUserId:
+        type: string
+        example: acnt123
+        description: A client-defined identifier of the user.
+        maxLength: 80
+      firstName:
+        type: string
+        example: John
+        description: The person’s first name.
+        maxLength: 80
+      lastName:
+        type: string
+        example: Smith
+        description: The person’s last name.
+        maxLength: 80
+      middleName:
+        type: string
+        example: ''
+        description: The person’s middle name.
+        maxLength: 80
+      email:
+        type: string
+        example: jsmith@gmail.com
+        description: The person’s email address.
+        maxLength: 255
+      profileType:
+        $ref: '#/definitions/merchantProfileTypeType'
+        example: INDIVIDUAL
+        description: The profile type - required if *lockProfileType* is *true*.
+      lockProfileType:
+        type: boolean
+        example: false
+        default: false
+        description: Defines if profile type is fixed. If true the profile type can not be changed during registration.
+      personAttributes:
+        type: array
+        items:
+          $ref: '#/definitions/merchantPersonAttribute'
+        description: Optional array of PersonAttributes.
+      programId:
+        type: string
+        format: uuid
+        example: 1f90dbce-f4c6-11ed-88f5-63c0378ad18b
+        description: 'The unique identifier of the business entity, which is debtor/originator of the payment. Created during onboarding, and provided by Verituity.'
+    title: CreateUserRequest
+    required:
+      - programId
+      - firstName
+      - lastName
+      - email
+      - clientUserId
+    x-stoplight:
+      id: qf7zm2n3gqo00
+
+  merchantCreateUserResponse:
+    type: object
+    properties:
+      data:
+        $ref: '#/definitions/merchantUser'
+    title: CreateUserResponse
+    x-stoplight:
+      id: qmfefsq8hfacl
+  merchantDeleteUserResponse:
+    type: object
+    properties:
+      data:
+        $ref: '#/definitions/DeleteUserResponse'
+    title: DeleteUserResponse
+    x-stoplight:
+      id: s1lhzkbos8wh0
+
+  merchantGetPaymentResponse:
+    type: object
+    properties:
+      data:
+        $ref: '#/definitions/merchantPayment'
+    title: GetPaymentResponse
+    x-stoplight:
+      id: 3fzbre35mn9dt
+  merchantGetUserResponse:
+    type: object
+    properties:
+      data:
+        $ref: '#/definitions/merchantUser'
+    title: GetUserResponse
+    x-stoplight:
+      id: iugbufb0rfrzo
+  merchantGetVersionResponse:
+    type: object
+    properties:
+      version:
+        type: string
+        example: 0.0.1
+        description: 'Example: `0.0.1`'
+        title: Signature of the version
+    description: Response from the component about its version
+    title: VersionResponse
+    x-stoplight:
+      id: guadvtw142vbn
+  merchantListPaymentsResponse:
+    type: object
+    properties:
+      data:
+        type: array
+        items:
+          $ref: '#/definitions/merchantPayment'
+        description: A list containing matching resources.
+      count:
+        type: integer
+        format: int64
+        example: 1
+        description: The total number of matching resources.
+        readOnly: true
+      offset:
+        type: integer
+        format: int64
+        example: 0
+        description: The offset as provided.
+        readOnly: true
+      limit:
+        type: integer
+        format: int64
+        example: 10
+        description: The limit as provided.
+        readOnly: true
+    title: ListPaymentsResponse
+    x-stoplight:
+      id: lnpa50134hqop
+  merchantListUsersResponse:
+    type: object
+    properties:
+      data:
+        type: array
+        items:
+          $ref: '#/definitions/merchantUser'
+        description: A list containing matching resources.
+      count:
+        type: integer
+        format: int64
+        example: 1
+        description: The total number of matching resources.
+        readOnly: true
+      offset:
+        type: integer
+        format: int64
+        example: 0
+        description: The offset as provided.
+        readOnly: true
+      limit:
+        type: integer
+        format: int64
+        example: 10
+        description: The limit as provided.
+        readOnly: true
+    title: ListUsersResponse
+    x-stoplight:
+      id: x09a0amsh0svq
+  merchantListWebhookEventsResponse:
+    type: object
+    properties:
+      data:
+        type: array
+        items:
+          $ref: '#/definitions/merchantWebhookEvent'
+        description: A list containing matching resources.
+      count:
+        type: integer
+        format: int64
+        example: 1
+        description: The total number of matching resources.
+        readOnly: true
+      offset:
+        type: integer
+        format: int64
+        example: 0
+        description: The offset as provided.
+        readOnly: true
+      limit:
+        type: integer
+        format: int64
+        example: 10
+        description: The limit as provided.
+        readOnly: true
+    title: ListWebhookEventsResponse
+    x-stoplight:
+      id: mlhgiwuzu0w9x
+  merchantPayment:
+    type: object
+    properties:
+      id:
+        type: string
+        format: uuid
+        example: 1cf619c4-f4cb-11ed-9728-9f3060728e3f
+        description: Unique identifier of the payment. Created by Verituity.
+        readOnly: true
+      recipientUserId:
+        type: string
+        format: uuid
+        example: 2a3ce90a-f4cb-11ed-9593-af95d78d680e
+        description: Unique identifier of the recipient. Created by Verituity.
+      clientPaymentId:
+        type: string
+        example: ref-123
+        description: A client-defined identifier for the payment. Created by the payer.
+        maxLength: 80
+      amount:
+        type: number
+        example: 99.05
+        description: The amount of the payment. Must contain the appropriate number of decimal points depending on the currency.
+      currencyCode:
+        type: string
+        example: USD
+        description: The 3-letter currency code as defined in ISO 4217.
+        minLength: 3
+        maxLength: 3
+      programId:
+        type: string
+        format: uuid
+        example: 1f90dbce-f4c6-11ed-88f5-63c0378ad18b
+        description: 'The unique identifier of the business entity, which is debtor/originator of the payment. Created during onboarding, and provided by Verituity.'
+      description:
+        type: string
+        example: This is payment for your claim 1234-567 of 01/02/2020.
+        description: 'Required description of the payment, provided by the payer. It will be displayed in the invitation email, and on the Payee Portal.'
+        maxLength: 200
+      status:
+        $ref: '#/definitions/merchantPaymentStatusType'
+        example: CREATED
+        default: CREATED
+        readOnly: true
+      createdOn:
+        type: string
+        format: 'YYYY-MM-DDThh:mm:ss'
+        example: '2020-09-20T20:35:09'
+        description: |-
+          The datetime the payment was created, in ISO 8601 format.
+          Note that the timezone used is UTC, therefore no time offset is returned.
+        readOnly: true
+      updatedOn:
+        type: string
+        format: 'YYYY-MM-DDThh:mm:ss'
+        example: '2020-09-20T20:35:09'
+        description: |-
+          The datetime the payment was updated, in ISO 8601 format.
+          Note that the timezone used is UTC, therefore no time offset is returned.
+        readOnly: true
+      remittanceURL:
+        type: string
+        description: Optional remittance URL provided by the payment creator. It must be a well-formed URL containing metadata attached for informational purposes.
+        title: Optional remittance URL attached to the payment
+        example: 'http://example.com/your-payment-instructions-are-here'
+    title: Payment
+    x-stoplight:
+      id: 5i6ibh6ctnpde
+  merchantPaymentHold:
+    type: object
+    properties:
+      paymentId:
+        type: string
+        format: uuid
+        example: 5a8a6714-f4fc-11ed-853d-f74e0fb94cc9
+        description: Unique identifier of the payment.
+      status:
+        type: string
+        example: ON_HOLD
+    title: PaymentHold
+    x-stoplight:
+      id: m2hc7ui55087s
+
+  DeleteUserResponse:
+    type: object
+    properties:
+      id:
+        type: string
+        format: uuid
+        example: 13c13008-f58b-11ed-8d3c-0b5b99f75096
+        description: Unique identifier of the user (same as id on the input).
+      status:
+        type: string
+        example: DEACTIVATED
+    title: DeleteUserResponse
+    x-stoplight:
+      id: v3qhrzwwwn555
+
+  merchantPaymentRelease:
+    type: object
+    properties:
+      paymentId:
+        type: string
+        format: uuid
+        example: 5a8a6714-f4fc-11ed-853d-f74e0fb94cc9
+        description: Unique identifier of the payment.
+      status:
+        type: string
+        example: CREATED
+    title: PaymentRelease
+    x-stoplight:
+      id: mmc1k0st8s17s
+
+  merchantPaymentStatusType:
+    type: string
+    enum:
+      - UNSPECIFIED
+      - CREATED
+      - IN_PROGRESS
+      - FAILED
+      - COMPLETED
+      - EXPIRED
+      - CANCELED
+      - ON_HOLD
+    default: CREATED
+    description: |-
+      The status of the payment.
+
+      Example: `COMPLETED`
+
+       - CREATED: The payment has been created.
+       - IN_PROGRESS: The payment is being processed.
+       - FAILED: The payment has failed.
+       - COMPLETED: The payment has been completed.
+       - EXPIRED: The payment has expired.
+       - CANCELED: The payment has been canceled.
+       - ON_HOLD: The payment is on hold.
+    title: PaymentStatus
+    x-stoplight:
+      id: wkywwdhmnnds1
+  merchantPersonAttribute:
+    type: object
+    properties:
+      id:
+        type: string
+        example: 7295831c-2c9f-426a-928b-d559367eeb3f
+        description: Unique id of the attribute
+        readOnly: true
+      name:
+        type: string
+        example: policy_number
+        description: 'Name of the person attribute. Existing person attributes are looked up using this value. If no existing person attribute is found, a new one is created and its id is used in the backend database.'
+        title: ''
+        maxLength: 255
+      value:
+        type: string
+        example: ABC123-45678
+        description: 'Person attribute value, as provided by the payer (reference value). Persisted in user_profile db.'
+        title: ''
+        maxLength: 255
+      matchRequired:
+        $ref: '#/definitions/PersonAttributeMatchType'
+        example: 'YES'
+        description: 'The type of the match - YES: exact match (case-sensitive, whitespace included), FUZZY: approximate, NO-ignore(log only)'
+    description: A single attribute describing a person that only the payee and the payer should know.
+    title: Person Attribute
+    x-stoplight:
+      id: lfnsyn1r4b3w3
+  merchantProfileTypeType:
+    type: string
+    enum:
+      - INDIVIDUAL
+      - BUSINESS
+    default: INDIVIDUAL
+    description: |-
+      The profile type of the user. Required to create a user if *lockProfileType* is *true*.
+
+      Example: `INDIVIDUAL`
+
+       - UNSPECIFIED: The profile type is not specified.
+    title: ProfileType
+    x-stoplight:
+      id: ji2fyfbynciea
+  merchantPutPaymentOnHoldResponse:
+    type: object
+    properties:
+      data:
+        $ref: '#/definitions/merchantPaymentHold'
+    title: PutPaymentOnHoldResponse
+    x-stoplight:
+      id: wio1zutu848vu
+  merchantDeletePaymentOnHoldResponse:
+    type: object
+    properties:
+      data:
+        $ref: '#/definitions/merchantPaymentRelease'
+    title: ReleasePaymentResponse
+    x-stoplight:
+      id: x6sv78vgldz6i
+  merchantUser:
+    type: object
+    properties:
+      id:
+        type: string
+        format: uuid
+        description: Unique identifier of the user. UUID - generated by Verituity when creating. Do NOT specify on input.
+        readOnly: true
+      programId:
+        type: string
+        format: uuid
+        description: alias for programId
+        readOnly: true
+      clientUserId:
+        type: string
+        example: acnt123
+        description: A client-defined unique identifier of the user.
+        maxLength: 80
+      firstName:
+        type: string
+        example: John
+        description: The person’s first name.
+        maxLength: 80
+      lastName:
+        type: string
+        example: Smith
+        description: The person’s last name.
+        maxLength: 80
+      email:
+        type: string
+        example: jsmith@gmail.com
+      status:
+        $ref: '#/definitions/merchantUserStatusType'
+        example: CREATED
+        description: The status of the user profile in the Verituity system.
+      createdOn:
+        type: string
+        format: 'YYYY-MM-DDThh:mm:ss'
+        example: '2020-09-20T20:35:09'
+        description: |-
+          The datetime the user was created, in ISO 8601 format.
+          Note that the timezone used is UTC, therefore no time offset is returned.
+          Output only.
+        readOnly: true
+      updatedOn:
+        type: string
+        format: 'YYYY-MM-DDThh:mm:ss'
+        example: '2020-09-20T20:35:09'
+        description: |-
+          The datetime the user was updated, in ISO 8601 format.
+          Note that the timezone used is UTC, therefore no time offset is returned.
+          Output only.
+        readOnly: true
+      profileType:
+        $ref: '#/definitions/merchantProfileTypeType'
+        example: INDIVIDUAL
+      businessName:
+        type: string
+        example: ''
+        description: The name of the business.
+        readOnly: true
+      middleName:
+        type: string
+        example: ''
+        description: The person’s middle name.
+        readOnly: true
+        maxLength: 80
+      addressLine1:
+        type: string
+        example: ''
+        description: Line 1 of User's address.
+        readOnly: true
+        maxLength: 80
+      addressLine2:
+        type: string
+        example: ''
+        description: Line 2 of User's address.
+        readOnly: true
+        maxLength: 80
+      city:
+        type: string
+        example: ''
+        description: The user's city.
+        readOnly: true
+        maxLength: 80
+      stateProvince:
+        type: string
+        example: ''
+        description: The user's state or province.
+        readOnly: true
+        maxLength: 80
+      countryCode:
+        type: string
+        example: US
+        description: |-
+          The user's country code.
+
+          The value follows ISO-3166 standard. Alpha-2 code is used.
+        readOnly: true
+        maxLength: 2
+        minLength: 2
+      postalCode:
+        type: string
+        example: ''
+        description: The user's postal code.
+        readOnly: true
+        maxLength: 16
+      lockProfileType:
+        type: boolean
+        example: false
+        description: 'If *true*, the profile type was pre-defined for the user.'
+      personAttributes:
+        type: array
+        items:
+          $ref: '#/definitions/merchantPersonAttribute'
+        title: A list of attribute keys for the profile
+    title: User
+    x-stoplight:
+      id: o5uiv5edxqjn0
+  merchantUserStatusType:
+    type: string
+    enum:
+      - DRAFT
+      - CREATED
+      - VERIFIED
+      - ACTIVATED
+      - GUARDIAN_CONSENT_PENDING
+      - ID_PROOFING_FAILED
+      - ID_PROOFING_PENDING
+      - GUARDIAN_CONSENT_REJECTED
+      - NAME_MATCH_FAILED
+      - RELATIONSHIP_VERIFICATION_FAILED
+      - RELATIONSHIP_VERIFICATION_FAILED_FINAL
+      - SUSPENDED
+      - ON_HOLD
+      - LOCKED
+      - DEACTIVATED
+    default: DRAFT
+    description: |-
+      The status of the user.
+
+      Example: `ACTIVATED`
+
+       - DRAFT: Undetermined/draft
+       - CREATED: The user has been created.
+       - VERIFIED: User entered OTP and confirmed their email
+       - ACTIVATED: User is able to accept payments
+       - GUARDIAN_CONSENT_PENDING: Minor awaiting for parent to consent
+       - ID_PROOFING_FAILED: User went to ID Proofing, but hasn't passed the check
+       - ID_PROOFING_PENDING: User agreed to try the secondary ID Proofing check
+       - GUARDIAN_CONSENT_REJECTED: Guardian rejected to give consent for minor
+       - NAME_MATCH_FAILED: User name matching failed
+       - RELATIONSHIP_VERIFICATION_FAILED: Relationship verification failed
+       - RELATIONSHIP_VERIFICATION_FAILED_FINAL: Relationship verification failed
+       - SUSPENDED: Merchant (admin) decided to suspend profile
+       - ON_HOLD: Merchant (admin) decided to place profile on hold
+       - LOCKED: User locked for various reasons except expiration, and thus cannot access the system at all
+       - DEACTIVATED: User wasn't active for 2 years, so cannot access the system, and is subject for removal
+    title: UserStatus
+    x-stoplight:
+      id: ffhqpwoxj9jvj
+  merchantWebhookEvent:
+    type: object
+    properties:
+      id:
+        type: string
+        example: 7295831c-2c9f-426a-928b-d559367eeb3f
+        title: Unique id of the Webhook Event
+        readOnly: true
+      createdOn:
+        type: string
+        example: '2022-01-17T03:02:01'
+        description: 'Date and time of the event in ISO 8601 format (YYYY-MM-DDThh:mm:ss).'
+        title: Date and time of the event
+        readOnly: true
+      type:
+        type: string
+        example: PAYMENTS.CREATED
+        description: |-
+          Supported events:
+          - *USERS.CREATED*
+          - *USERS.UPDATED.ID_PROOFING.FAILED*
+          - *USERS.UPDATED.ID_PROOFING.VERIFIED*
+          - *USERS.UPDATED.STATUS.ACTIVATED*
+          - *USERS.UPDATED.STATUS.ON_HOLD*
+          - *USERS.UPDATED.STATUS.SUSPENDED*
+          - *USERS.UPDATED.STATUS.DEACTIVATED*
+          - *PAYMENTS.CREATED*
+          - *PAYMENTS.UPDATED.STATUS.IN_PROGRESS*
+          - *PAYMENTS.UPDATED.STATUS.FAILED*
+          - *PAYMENTS.UPDATED.STATUS.COMPLETED*
+          - *PAYMENTS.UPDATED.STATUS.EXPIRED*
+          - *PAYMENTS.UPDATED.STATUS.CANCELED*
+        title: Type of the event
+        readOnly: true
+      dataType:
+        type: string
+        example: Payment
+        description: |-
+          Supported types:
+          - *User*
+          - *Payment*
+        title: Type of the event
+        readOnly: true
+      data:
+        type: string
+        title: Payload as a JSON
+        readOnly: true
+    title: WebhookEvent
+    x-stoplight:
+      id: netk2w452qcca
+  error:
+    type: object
+    properties:
+      error:
+        type: string
+      code:
+        type: integer
+        format: int32
+      message:
+        type: string
+    example:
+      error: not found
+      code: 13
+      message: user not found
+    x-stoplight:
+      id: 7xjujdyorvc5j
+    x-examples:
+      Example 1:
+        error: not found
+        code: 13
+        message: User not found
+    description: Returned on errors
